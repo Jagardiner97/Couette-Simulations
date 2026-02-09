@@ -1,0 +1,6 @@
+Applications:
+    couette:
+        app_types:
+            - couetteApp
+        content_directory: ${ROOT_DIR}/doc/content
+        log_default: WARNING
