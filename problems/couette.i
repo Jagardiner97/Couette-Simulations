@@ -19,6 +19,10 @@
         family = LAGRANGE
         order = FIRST
     [../]
+    [./T]
+        family = LAGRANGE
+        order = FIRST
+    [../]
 []
 
 # Dirichlet BCs: top (u,v)=(3,0), bottom (u,v)=(0,0)
@@ -35,6 +39,12 @@
         boundary = 'top'
         value = 0.0
     [../]
+    [./top_T]
+        type = DirichletBC
+        variable = T
+        boundary = 'top'
+        value = 1.0
+    [../]
     [./bottom_u]
         type = DirichletBC
         variable = u
@@ -44,6 +54,12 @@
     [./bottom_v]
         type = DirichletBC
         variable = v
+        boundary = 'bottom'
+        value = 0.0
+    [../]
+    [./bottom_T]
+        type = DirichletBC
+        variable = T
         boundary = 'bottom'
         value = 0.0
     [../]
@@ -61,7 +77,12 @@
         boundary = 'left'
         value = 0.0
     [../]
-
+    [./left_T]
+        type = DirichletBC
+        variable = T
+        boundary = 'left'
+        value = 0.0
+    [../]
     # Right: outlet (zero Neumann / natural outflow)
     [./right_u]
         type = NeumannBC
@@ -72,6 +93,12 @@
     [./right_v]
         type = NeumannBC
         variable = v
+        boundary = 'right'
+        value = 0.0
+    [../]
+    [./right_T]
+        type = NeumannBC
+        variable = T
         boundary = 'right'
         value = 0.0
     [../]
@@ -88,6 +115,11 @@
         variable = v
         function = '0.0' # Initial guess for v
     [../]
+    [./T]
+        type = FunctionIC
+        variable = T
+        function = '0.0' # Linear initial guess for T
+    [../]
 []
 
 # Note: add appropriate Kernels / Materials for your PDE (e.g., Navier-Stokes) below.
@@ -99,6 +131,10 @@
     [./diff_y]
         type = Diffusion
         variable = v
+    [../]
+    [./diff_T]
+        type = Diffusion
+        variable = T
     [../]
 []
 
