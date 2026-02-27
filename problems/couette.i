@@ -1,148 +1,177 @@
 # couette.i - generated mesh for 2x1 rectangular channel
+# Material properties
+rho = 1
+mu = 1
+k = 1
+cp = 1
+
+[GlobalParams]
+    gravity = '0 0 0' # No gravity for this problem
+    pspg = true # Enable PSPG stabilization for pressure
+[]
+
 [Mesh]
-    type = GeneratedMesh
-    dim = 2
-    nx = 40
-    ny = 20
-    xmin = 0.0
-    xmax = 2.0
-    ymin = 0.0
-    ymax = 1.0
+    [gen]
+        type = GeneratedMeshGenerator
+        dim = 2
+        nx = 10
+        ny = 10
+        xmin = 0.0
+        xmax = 5.0
+        ymin = 0.0
+        ymax = 1.0
+    []
+    [corner_node]
+        type = ExtraNodesetGenerator
+        input = gen
+        new_boundary = 'pinned_node'
+        nodes = '0'
+    []  
+[]
+
+[AuxVariables]
+    [Pe]
+        family = MONOMIAL
+        order = FIRST
+    []
+[]
+
+[AuxKernels]
+    [Pe]
+        type = PecletNumberFunctorAux
+        speed = speed
+        thermal_diffusivity = 'thermal_diffusivity'
+        variable = Pe
+    []
 []
 
 [Variables]
-    [./u]
-        family = LAGRANGE
-        order = FIRST
-    [../]
-    [./v]
-        family = LAGRANGE
-        order = FIRST
-    [../]
-    [./T]
-        family = LAGRANGE
-        order = FIRST
-    [../]
+    [vel_x][]
+    [vel_y][]
+    [p][]
+    [T][]
 []
+
+[Kernels]
+    # mass
+    [mass]
+        type = INSMass
+        pressure = p
+        u = vel_x
+        v = vel_y
+        variable = p
+    []
+    # x-momentum, space
+    [x_momentum_space]
+        type = INSMomentumLaplaceForm
+        variable = vel_x
+        u = vel_x
+        v = vel_y
+        pressure = p
+        component = 0
+    []
+    # y-momentum, space
+    [y_momentum_space]
+        type = INSMomentumLaplaceForm
+        variable = vel_y
+        u = vel_x
+        v = vel_y
+        pressure = p
+        component = 1
+    []
+    [temperature_space]
+        type = INSTemperature
+        variable = T
+        u = vel_x
+        v = vel_y
+    []
+[]      
 
 # Dirichlet BCs: top (u,v)=(3,0), bottom (u,v)=(0,0)
 [BCs]
-    [./top_u]
+    [x_no_slip]
         type = DirichletBC
-        variable = u
-        boundary = 'top'
-        value = 3.0
-    [../]
-    [./top_v]
-        type = DirichletBC
-        variable = v
-        boundary = 'top'
+        boundary = 'bottom right left'
         value = 0.0
-    [../]
-    [./top_T]
+        variable = vel_x
+    []
+    [y_no_slip]
         type = DirichletBC
-        variable = T
+        boundary = 'bottom right top left'
+        value = 0.0
+        variable = vel_y
+    []
+    [lid]
+        type = FunctionDirichletBC
         boundary = 'top'
+        function = 'lid_function'
+        variable = vel_x
+    []
+    [pressure_pin]
+        type = DirichletBC
+        boundary = 'pinned_node'
+        value = 0.0
+        variable = p
+    []
+    [T_hot]
+        type = DirichletBC
+        boundary = 'bottom'
         value = 1.0
-    [../]
-    [./bottom_u]
-        type = DirichletBC
-        variable = u
-        boundary = 'bottom'
-        value = 0.0
-    [../]
-    [./bottom_v]
-        type = DirichletBC
-        variable = v
-        boundary = 'bottom'
-        value = 0.0
-    [../]
-    [./bottom_T]
-        type = DirichletBC
         variable = T
-        boundary = 'bottom'
+    []
+    [T_cold]
+        type = DirichletBC
+        boundary = 'top'
         value = 0.0
-    [../]
-
-    # Left: inlet (prescribe uniform inlet velocity)
-    [./left_u]
-        type = DirichletBC
-        variable = u
-        boundary = 'left'
-        value = 3.0
-    [../]
-    [./left_v]
-        type = DirichletBC
-        variable = v
-        boundary = 'left'
-        value = 0.0
-    [../]
-    [./left_T]
-        type = DirichletBC
         variable = T
-        boundary = 'left'
-        value = 0.0
-    [../]
-    # Right: outlet (zero Neumann / natural outflow)
-    [./right_u]
-        type = NeumannBC
-        variable = u
-        boundary = 'right'
-        value = 0.0
-    [../]
-    [./right_v]
-        type = NeumannBC
-        variable = v
-        boundary = 'right'
-        value = 0.0
-    [../]
-    [./right_T]
-        type = NeumannBC
-        variable = T
-        boundary = 'right'
-        value = 0.0
-    [../]
+    []  
 []
 
-[ICs]
-    [./u]
-        type = FunctionIC
-        variable = u
-        function = '3.0 * y' # Linear initial guess for u
-    [../]
-    [./v]
-        type = FunctionIC
-        variable = v
-        function = '0.0' # Initial guess for v
-    [../]
-    [./T]
-        type = FunctionIC
-        variable = T
-        function = '0.0' # Linear initial guess for T
-    [../]
+[Materials]
+    [const]
+        type = GenericConstantMaterial
+        block = 0
+        prop_names = 'rho mu k cp'
+        prop_values = '${rho} ${mu} ${k} ${cp}'
+    []
 []
 
-# Note: add appropriate Kernels / Materials for your PDE (e.g., Navier-Stokes) below.
-[Kernels]
-    [./diff_x]
-        type = Diffusion
-        variable = u
-    [../]
-    [./diff_y]
-        type = Diffusion
-        variable = v
-    [../]
-    [./diff_T]
-        type = Diffusion
-        variable = T
-    [../]
+[FunctorMaterials]
+    [speed]
+        type = ADVectorMagnitudeFunctorMaterial
+        vector_magnitude_name = speed
+        x_functor = vel_x
+        y_functor = vel_y
+    []
+    [thermal_diffusivity]
+        type = ThermalDiffusivityFunctorMaterial
+        cp = ${cp}
+        k = ${k}
+        rho = ${rho}
+    []
+[]
+
+[Functions]
+    [lid_function]
+        type = ParsedFunction
+        expression = 'x' # Linear function for lid velocity
+    []
+[]
+
+[Preconditioning]
+    [SMP]
+        type = SMP
+        full = true
+        solve_type = 'NEWTON'
+    []
 []
 
 [Executioner]
     type = Steady
-    solve_type = PJFNK
-    l_tol = 1e-8
-    nl_max_its = 50
+    petsc_options_iname = '-pc_type -pc_asm_overlap -sub_pc_type'
+    petsc_options_value = 'asm      2               lu'
+    line_search = 'none'
+    nl_rel_tol = 1e-12
 []
 
 [Outputs]
