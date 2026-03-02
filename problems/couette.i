@@ -53,15 +53,13 @@ cp = 1
 []
 
 [Kernels]
-    # mass
     [mass]
         type = INSMass
+        variable = p
         pressure = p
         u = vel_x
         v = vel_y
-        variable = p
     []
-    # x-momentum, space
     [x_momentum_space]
         type = INSMomentumLaplaceForm
         variable = vel_x
@@ -70,7 +68,6 @@ cp = 1
         pressure = p
         component = 0
     []
-    # y-momentum, space
     [y_momentum_space]
         type = INSMomentumLaplaceForm
         variable = vel_y
@@ -87,7 +84,6 @@ cp = 1
     []
 []      
 
-# Dirichlet BCs: top (u,v)=(3,0), bottom (u,v)=(0,0)
 [BCs]
     [x_no_slip]
         type = DirichletBC
@@ -154,7 +150,7 @@ cp = 1
 [Functions]
     [lid_function]
         type = ParsedFunction
-        expression = 'x' # Linear function for lid velocity
+        expression = 'x' # Linear lid velocity profile
     []
 []
 

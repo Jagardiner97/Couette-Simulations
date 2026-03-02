@@ -1,151 +1,168 @@
 # couette.i - generated mesh for 2x1 rectangular channel
+# Material properties
+rho = 1
+mu = 1
+k = 1
+cp = 1
+
+[GlobalParams]
+    gravity = '0 0 0' # No gravity for this problem
+    pspg = true # Enable PSPG stabilization for pressure
+[]
+
 [Mesh]
-    type = FileMesh
-    file = cylinder.msh
-    dim = 2
+    [gen]
+        type = FileMeshGenerator
+        file = cylinder.msh
+    []
+    [corner_node]
+        type = ExtraNodesetGenerator
+        input = gen
+        new_boundary = 'pinned_node'
+        nodes = '0'
+    []  
+[]
+
+[AuxVariables]
+    [Pe]
+        family = MONOMIAL
+        order = FIRST
+    []
+[]
+
+[AuxKernels]
+    [Pe]
+        type = PecletNumberFunctorAux
+        speed = speed
+        thermal_diffusivity = 'thermal_diffusivity'
+        variable = Pe
+    []
 []
 
 [Variables]
-    [vel]
-        order = SECOND
-        family = LAGRANGE_VEC
-    []
-    [temp]
-        family = LAGRANGE
-        order = FIRST
-    []
-    [p]
-        family = LAGRANGE
-        order = FIRST
-    []
-[]
-
-# Dirichlet BCs: top (u,v)=(3,0), bottom (u,v)=(0,0)
-[BCs]
-    # Velocity BCs: no-slip on bottom, top, and cylinder walls, inlet on left, outlet on right
-    [stationary_wall]
-        type = VectorFunctionDirichletBC
-        variable = vel
-        boundary = 'Bottom Top CylinderWalls'
-        function_x = '0'
-        function_y = '0'
-    []
-    [inlet]
-        type = VectorFunctionDirichletBC
-        variable = vel
-        boundary = 'Inlet'
-        function_x = '1.0'
-        function_y = '0'
-    []
-
-    # Pressure BCs: zero pressure at outlet
-    [./inlet_p]
-        type = DirichletBC
-        variable = p
-        boundary = 'Inlet'
-        value = 1.0
-    [../]
-    [./outlet_p]
-        type = NeumannBC
-        variable = p
-        boundary = 'Outlet'
-        value = 0.0
-    [../]
-
-    # Temperature BCs: T=1 on top, T=0 on bottom, insulated (Neumann) on left and right
-    [./heated_wall]
-        type = DirichletBC
-        variable = temp
-        boundary = 'CylinderWalls'
-        value = 1.0
-    [../]
-    [./cooled_wall]
-        type = DirichletBC
-        variable = temp
-        boundary = 'Top Bottom'
-        value = 0.0
-    [../]
-    [./inlet_T]
-        type = DirichletBC
-        variable = temp
-        boundary = 'Inlet'
-        value = 0.0
-    [../]
-    [./outlet_T]
-        type = NeumannBC
-        variable = temp
-        boundary = 'Outlet'
-        value = 0.0
-    [../]
-[]
-
-[ICs]
-    [./vel]
-        type = VectorFunctionIC
-        variable = vel
-        function_x = '0.0'       # Linear initial guess for u
-        function_y = '0.0'       # Initial guess for v
-    [../]
-    [./p]
-        type = FunctionIC
-        variable = p
-        function = '1.0' # Initial guess for pressure
-    [../]
-    [./temp]
-        type = FunctionIC
-        variable = temp
-        function = '0.0' # Linear initial guess for T
-    [../]
-[]
-
-[Materials]
-    [./const]
-        type = ADGenericConstantMaterial
-        prop_names = 'rho mu cp k'
-        prop_values = '1.0 1.0 1.0 0.1'
-    [../]
-    [ins_mat]
-        type = INSADStabilized3Eqn
-        velocity = vel
-        pressure = p
-        temperature = temp
-    []
+    [vel_x][]
+    [vel_y][]
+    [p][]
+    [T][]
 []
 
 [Kernels]
     [mass]
-        type = INSADMass
+        type = INSMass
+        variable = p
+        pressure = p
+        u = vel_x
+        v = vel_y
+    []
+    [x_momentum_space]
+        type = INSMomentumLaplaceForm
+        variable = vel_x
+        u = vel_x
+        v = vel_y
+        pressure = p
+        component = 0
+    []
+    [y_momentum_space]
+        type = INSMomentumLaplaceForm
+        variable = vel_y
+        u = vel_x
+        v = vel_y
+        pressure = p
+        component = 1
+    []
+    [temperature_space]
+        type = INSTemperature
+        variable = T
+        u = vel_x
+        v = vel_y
+    []
+[]      
+
+# Dirichlet BCs: top (u,v)=(3,0), bottom (u,v)=(0,0)
+[BCs]
+    [x_no_slip]
+        type = DirichletBC
+        boundary = 'Bottom Top CylinderWalls'
+        value = 0.0
+        variable = vel_x
+    []
+    [y_no_slip]
+        type = DirichletBC
+        boundary = 'Bottom Top CylinderWalls'
+        value = 0.0
+        variable = vel_y
+    []
+    [inlet]
+        type = FunctionDirichletBC
+        boundary = 'Inlet'
+        function = 'inlet_function'
+        variable = vel_x
+    []
+    [pressure_pin]
+        type = DirichletBC
+        boundary = 'pinned_node'
+        value = 0.0
         variable = p
     []
-    [momentum_convection]
-        type = INSADMomentumAdvection
-        variable = vel
+    [T_hot]
+        type = DirichletBC
+        boundary = 'CylinderWalls'
+        value = 1.0
+        variable = T
     []
-    [momentum_viscous]
-        type = INSADMomentumViscous
-        variable = vel
+    [T_cold]
+        type = DirichletBC
+        boundary = 'Top Bottom'
+        value = 0.0
+        variable = T
+    []  
+[]
+
+[Materials]
+    [const]
+        type = GenericConstantMaterial
+        block = 1
+        prop_names = 'rho mu k cp'
+        prop_values = '${rho} ${mu} ${k} ${cp}'
     []
-    [momentum_pressure]
-        type = INSADMomentumPressure
-        variable = vel
-        pressure = p
+[]
+
+[FunctorMaterials]
+    [speed]
+        type = ADVectorMagnitudeFunctorMaterial
+        vector_magnitude_name = speed
+        x_functor = vel_x
+        y_functor = vel_y
     []
-    [momentum_supg]
-        type = INSADMomentumSUPG
-        variable = vel
-        velocity = vel
+    [thermal_diffusivity]
+        type = ThermalDiffusivityFunctorMaterial
+        cp = ${cp}
+        k = ${k}
+        rho = ${rho}
     []
-    [./diff_T]
-        type = Diffusion
-        variable = temp
-    [../]
+[]
+
+[Functions]
+    [inlet_function]
+        type = ParsedFunction
+        expression = '5.0' # Constant inlet velocity
+    []
+[]
+
+[Preconditioning]
+    [SMP]
+        type = SMP
+        full = true
+        solve_type = 'NEWTON'
+    []
 []
 
 [Executioner]
-    type = Transient
-    scheme = BDF2
-    dt = 0.01
-    end_time = 2.0
+    type = Steady
+    petsc_options_iname = '-pc_type -pc_asm_overlap -sub_pc_type'
+    petsc_options_value = 'asm      2               lu'
+    line_search = 'none'
+    nl_rel_tol = 1e-12
 []
 
 [Outputs]
