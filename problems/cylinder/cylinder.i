@@ -13,7 +13,7 @@ cp = 1
 [Mesh]
     [gen]
         type = FileMeshGenerator
-        file = cylinder.msh
+        file = cyls.msh
     []
     [corner_node]
         type = ExtraNodesetGenerator
@@ -167,6 +167,6 @@ cp = 1
 
 [Outputs]
     exodus = true
-    file_base = cylinder
+    file_base = cyls
     perf_graph = true
 []
